@@ -269,7 +269,7 @@ function createProductCard(product) {
   const imageUrl = product.images && product.images[0] 
     ? 'https://kuku-yetu-backend.onrender.com/uploads/' + product.images[0]
     : '/assets/images/placeholder.jpg';
-    
+    return
         <div class="product-card" data-product-id="${product.id}">
             <div class="product-image">
                 <img data-src="${imageUrl}" 
