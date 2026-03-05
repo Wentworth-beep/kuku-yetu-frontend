@@ -13,10 +13,12 @@ let currentUser = null;
 const API_BASE_URL = window.location.hostname === 'localhost' 
     ? 'http://localhost:5000/api' 
     : window.API_BASE_URL || 'https://kuku-yetu-backend.onrender.com/api';
+
 // Pagination variables
 let currentPageNumber = 1;
 let productsPerPage = 6;
-// Token management - use this instead of authToken variable
+
+// Token management
 function getAuthToken() {
     return localStorage.getItem("token");
 }
@@ -75,7 +77,7 @@ function requestNotificationPermission() {
 async function initApp() {
     showLoading();
     try {
-        await loadAllProducts(); // Load all products first
+        await loadAllProducts();
         setupEventListeners();
         await checkAuthAndRestoreSession();
         startNotificationPolling();
@@ -83,10 +85,8 @@ async function initApp() {
         updateCartBadge();
         updateUIForLoggedInUser();
         
-        // Setup infinite scroll
         window.addEventListener('scroll', handleInfiniteScroll);
         
-        // Check for redirect after login
         const redirect = sessionStorage.getItem('redirectAfterLogin');
         if (redirect && currentUser) {
             sessionStorage.removeItem('redirectAfterLogin');
@@ -108,14 +108,12 @@ async function initApp() {
     }
 }
 
-// Load all products from API
 async function loadAllProducts() {
     try {
         console.log('📦 Loading all products...');
         const response = await getProducts();
         console.log('📦 API Response:', response);
         
-        // Handle different response formats
         if (response && response.success === true && response.products) {
             allProducts = response.products;
             console.log(`✅ Loaded ${allProducts.length} products from API`);
@@ -127,25 +125,21 @@ async function loadAllProducts() {
             allProducts = [];
         }
         
-        // Reset pagination
         currentPageNumber = 1;
         hasMoreProducts = allProducts.length > productsPerPage;
         
-        // Load first page
         await loadProductsPage(1);
         
     } catch (error) {
         console.error('❌ Failed to load products:', error);
         showToast('Failed to load products', 'error');
         allProducts = [];
-        // Show empty state
         if (productsGrid) {
             productsGrid.innerHTML = '<div class="no-products" style="text-align: center; padding: 50px;">Failed to load products. Please refresh the page.</div>';
         }
     }
 }
 
-// Load a specific page of products
 async function loadProductsPage(page) {
     if (!allProducts || allProducts.length === 0) {
         if (productsGrid) {
@@ -166,12 +160,10 @@ async function loadProductsPage(page) {
         appendProducts(pageProducts);
     }
     
-    // Check if there are more products
     hasMoreProducts = end < allProducts.length;
     console.log(`📄 Page ${page}: Loaded ${pageProducts.length} products, more: ${hasMoreProducts}`);
 }
 
-// Render products grid
 function renderProducts(productsToRender) {
     if (!productsGrid) {
         console.error('Products grid not found');
@@ -187,22 +179,19 @@ function renderProducts(productsToRender) {
 
     productsGrid.innerHTML = productsToRender.map(product => createProductCard(product)).join('');
     attachProductEventListeners();
-    lazyLoadImages(); // Initialize lazy loading for images
+    lazyLoadImages();
 }
 
-// Append more products (for infinite scroll)
 function appendProducts(newProducts) {
     if (!productsGrid) return;
-    
     if (!newProducts || newProducts.length === 0) return;
     
     const newHTML = newProducts.map(product => createProductCard(product)).join('');
     productsGrid.innerHTML += newHTML;
     attachProductEventListeners();
-    lazyLoadImages(); // Initialize lazy loading for new images
+    lazyLoadImages();
 }
 
-// Lazy load images using Intersection Observer
 function lazyLoadImages() {
     const imageObserver = new IntersectionObserver((entries, observer) => {
         entries.forEach(entry => {
@@ -228,6 +217,8 @@ function lazyLoadImages() {
         imageObserver.observe(img);
     });
 }
+
+// ============= PRODUCT CARD FUNCTION - FIXED =============
 function createProductCard(product) {
     const isFavorite = favorites.includes(product.id);
     let stockClass = 'available';
@@ -241,34 +232,12 @@ function createProductCard(product) {
         stockText = 'Out of stock';
     }
     
-    // DEFINE placeholder HERE
     const placeholder = 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 300 200\'%3E%3Crect width=\'300\' height=\'200\' fill=\'%23f0f0f0\'/%3E%3Ctext x=\'50%25\' y=\'50%25\' font-family=\'Arial\' font-size=\'16\' fill=\'%23999\' text-anchor=\'middle\' dy=\'.3em\'%3ELoading...%3C/text%3E%3C/svg%3E';
     
-    // FIXED image URL - points to backend
     const imageUrl = product.images && product.images[0] 
         ? 'https://kuku-yetu-backend.onrender.com/uploads/' + product.images[0]
         : '/assets/images/placeholder.jpg';
     
-    return `
-        <div class="product-card" data-product-id="${product.id}">
-            <div class="product-image">
-                <img data-src="${imageUrl}" 
-                     src="${placeholder}"
-                     alt="${product.title || 'Product'}" 
-                     class="lazy-image"
-                     onerror="this.src='/assets/images/placeholder.jpg'">
-                <span class="product-category">${product.category || 'Uncategorized'}</span>
-                <span class="stock-status ${stockClass}">${stockText}</span>
-            </div>
-            ...
-        </div>
-    `;
-}
-    
-    // Use placeholder while loading
-  const imageUrl = product.images && product.images[0] 
-    ? 'https://kuku-yetu-backend.onrender.com/uploads/' + product.images[0]
-    : '/assets/images/placeholder.jpg';
     return `
         <div class="product-card" data-product-id="${product.id}">
             <div class="product-image">
@@ -323,7 +292,6 @@ function generateStars(rating) {
     return stars;
 }
 
-// Infinite scroll handler
 function handleInfiniteScroll() {
     if (isLoading || !hasMoreProducts) return;
     
@@ -331,20 +299,17 @@ function handleInfiniteScroll() {
     const visibleHeight = window.innerHeight;
     const totalHeight = document.documentElement.scrollHeight;
     
-    // Load more when user scrolls to within 300px of the bottom
     if (scrollY + visibleHeight >= totalHeight - 300) {
         loadMoreProducts();
     }
 }
 
-// Load more products
 async function loadMoreProducts() {
     if (isLoading || !hasMoreProducts) return;
     
     isLoading = true;
     showBottomLoader();
     
-    // Simulate network delay (remove in production)
     await new Promise(resolve => setTimeout(resolve, 500));
     
     currentPageNumber++;
@@ -354,7 +319,6 @@ async function loadMoreProducts() {
     hideBottomLoader();
 }
 
-// Show loading indicator at bottom
 function showBottomLoader() {
     let loader = document.getElementById('bottom-loader');
     if (!loader) {
@@ -373,9 +337,7 @@ function hideBottomLoader() {
     if (loader) loader.remove();
 }
 
-// Event listeners setup
 function setupEventListeners() {
-    // Menu toggle
     if (menuToggle) {
         menuToggle.addEventListener('click', () => {
             if (sideMenu) sideMenu.classList.add('active');
@@ -388,13 +350,12 @@ function setupEventListeners() {
         });
     }
 
-    // Notifications - FIXED
     if (notificationBtn) {
         notificationBtn.addEventListener('click', () => {
             if (notificationPanel) {
                 notificationPanel.classList.toggle('active');
                 if (notificationPanel.classList.contains('active')) {
-                    loadNotifications(); // Refresh notifications when opening
+                    loadNotifications();
                 }
             }
         });
@@ -406,7 +367,6 @@ function setupEventListeners() {
         });
     }
 
-    // Search with debounce
     let searchTimeout;
     if (searchInput) {
         searchInput.addEventListener('input', (e) => {
@@ -417,7 +377,6 @@ function setupEventListeners() {
         });
     }
 
-    // Category filters
     document.querySelectorAll('[data-filter]').forEach(link => {
         link.addEventListener('click', (e) => {
             e.preventDefault();
@@ -426,7 +385,6 @@ function setupEventListeners() {
         });
     });
 
-    // Footer navigation
     document.querySelectorAll('.footer-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             const page = btn.dataset.page;
@@ -434,7 +392,6 @@ function setupEventListeners() {
         });
     });
 
-    // Modal close buttons
     document.querySelectorAll('.close-modal').forEach(btn => {
         btn.addEventListener('click', () => {
             if (productModal) productModal.classList.remove('active');
@@ -443,7 +400,6 @@ function setupEventListeners() {
         });
     });
 
-    // Auth tabs
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             const tab = btn.dataset.tab;
@@ -451,19 +407,16 @@ function setupEventListeners() {
         });
     });
 
-    // Login form
     const loginForm = document.getElementById('loginForm');
     if (loginForm) {
         loginForm.addEventListener('submit', handleLogin);
     }
 
-    // Register form
     const registerForm = document.getElementById('registerForm');
     if (registerForm) {
         registerForm.addEventListener('submit', handleRegister);
     }
 
-    // WhatsApp button
     if (whatsappBtn) {
         whatsappBtn.addEventListener('click', (e) => {
             e.preventDefault();
@@ -471,7 +424,6 @@ function setupEventListeners() {
         });
     }
 
-    // Support button
     if (supportBtn) {
         supportBtn.addEventListener('click', (e) => {
             e.preventDefault();
@@ -479,14 +431,12 @@ function setupEventListeners() {
         });
     }
 
-    // Cart button
     if (cartBtn) {
         cartBtn.addEventListener('click', () => {
             navigateTo('cart');
         });
     }
 
-    // Close menus when clicking outside
     document.addEventListener('click', (e) => {
         if (sideMenu && sideMenu.classList.contains('active') && !sideMenu.contains(e.target) && !menuToggle.contains(e.target)) {
             sideMenu.classList.remove('active');
@@ -497,7 +447,6 @@ function setupEventListeners() {
     });
 }
 
-// Check auth and restore session
 async function checkAuthAndRestoreSession() {
     const token = localStorage.getItem('token');
     const savedUser = localStorage.getItem('user');
@@ -513,10 +462,8 @@ async function checkAuthAndRestoreSession() {
     }
 }
 
-// Update UI based on login status
 function updateUIForLoggedInUser() {
     if (currentUser) {
-        // Update profile button in footer
         const profileBtn = document.querySelector('.footer-btn[data-page="profile"] span');
         if (profileBtn) {
             profileBtn.textContent = currentUser.full_name.split(' ')[0];
@@ -531,7 +478,6 @@ function updateUIForLoggedOutUser() {
     }
 }
 
-// Product functions
 async function filterProducts(category) {
     console.log('🔍 Filtering products for category:', category);
     
@@ -576,7 +522,6 @@ async function searchProducts(query) {
     }
 }
 
-// Loading functions
 function showLoading() {
     if (loadingSpinner) loadingSpinner.classList.add('active');
 }
@@ -585,7 +530,6 @@ function hideLoading() {
     if (loadingSpinner) loadingSpinner.classList.remove('active');
 }
 
-// Toast notifications
 function showToast(message, type = 'info') {
     if (!toastContainer) return;
     
@@ -608,7 +552,6 @@ function showToast(message, type = 'info') {
     }, 3000);
 }
 
-// Product modal
 async function openProductModal(productId) {
     showLoading();
     try {
@@ -636,7 +579,7 @@ function renderProductModal(product) {
             <div class="product-images">
                 <div class="image-slider">
                     <div class="slider-container" id="imageSlider">
-                        ${product.images.map(img => `<img src="${img}" alt="${product.title}" onerror="this.src='/assets/images/placeholder.jpg'">`).join('')}
+                        ${product.images.map(img => `<img src="https://kuku-yetu-backend.onrender.com/uploads/${img}" alt="${product.title}" onerror="this.src='/assets/images/placeholder.jpg'">`).join('')}
                     </div>
                     ${product.images.length > 1 ? `
                         <button class="slider-btn prev" onclick="slideImage(-1)"><i class="fas fa-chevron-left"></i></button>
@@ -677,13 +620,11 @@ function renderProductModal(product) {
         </div>
     `;
 
-    // Initialize image slider if multiple images
     if (product.images && product.images.length > 1) {
         startImageSlider();
     }
 }
 
-// Image slider functions
 function startImageSlider() {
     if (slideInterval) {
         clearInterval(slideInterval);
@@ -722,7 +663,6 @@ function goToSlide(index) {
     });
 }
 
-// Cart functions
 function loadCart() {
     const savedCart = localStorage.getItem('cart');
     if (savedCart) {
@@ -804,7 +744,7 @@ function renderCart() {
         <div class="cart-items" style="max-height: 400px; overflow-y: auto;">
             ${cart.map(item => `
                 <div class="cart-item" style="display: flex; gap: 15px; padding: 15px; border-bottom: 1px solid #eee;">
-                    <img src="${item.image || '/assets/images/placeholder.jpg'}" 
+                    <img src="${item.image ? 'https://kuku-yetu-backend.onrender.com/uploads/' + item.image : '/assets/images/placeholder.jpg'}" 
                          alt="${item.title}" 
                          class="cart-item-image" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px;">
                     <div class="cart-item-details" style="flex: 1;">
@@ -866,7 +806,6 @@ function openCart() {
     if (cartModal) cartModal.classList.add('active');
 }
 
-// Auth functions
 function openLoginModal() {
     if (loginModal) {
         loginModal.classList.add('active');
@@ -915,7 +854,6 @@ async function handleLogin(e) {
             updateUIForLoggedInUser();
             showToast(`Welcome back, ${currentUser.full_name}!`, 'success');
             
-            // Check for redirect
             const redirect = sessionStorage.getItem('redirectAfterLogin');
             if (redirect) {
                 sessionStorage.removeItem('redirectAfterLogin');
@@ -991,7 +929,6 @@ function logout() {
     showToast('Logged out successfully', 'success');
 }
 
-// Navigation
 function navigateTo(page) {
     currentPage = page;
     
@@ -1119,7 +1056,6 @@ function showProfile() {
     `;
 }
 
-// Save for later
 function saveForLater(productId) {
     if (!currentUser) {
         sessionStorage.setItem('redirectAfterLogin', 'saveForLater');
@@ -1151,15 +1087,11 @@ function proceedToCheckout(productId) {
     openCart();
 }
 
-// ============= NOTIFICATION FUNCTIONS - FIXED =============
-
 function startNotificationPolling() {
     if (!currentUser) return;
     
-    // Load notifications immediately
     loadNotifications();
     
-    // Then poll every 10 seconds for new notifications
     if (notificationInterval) {
         clearInterval(notificationInterval);
     }
@@ -1194,7 +1126,6 @@ async function loadNotifications() {
         const unreadCount = notifications.filter(n => !n.is_read).length;
         updateNotificationBadge(unreadCount);
         
-        // Show browser notification for new unread notifications
         if (unreadCount > 0 && Notification.permission === 'granted') {
             const lastCount = parseInt(localStorage.getItem('lastNotificationCount') || '0');
             if (unreadCount > lastCount) {
@@ -1281,7 +1212,6 @@ async function openNotification(notificationId) {
             }
         });
         
-        // Update the notification in the UI
         const notificationElement = document.querySelector(`.notification-item[data-id="${notificationId}"]`);
         if (notificationElement) {
             notificationElement.classList.remove('unread');
@@ -1289,12 +1219,10 @@ async function openNotification(notificationId) {
             notificationElement.style.background = 'white';
             notificationElement.style.borderLeft = 'none';
             
-            // Remove the unread dot
             const dot = notificationElement.querySelector('span:last-child');
             if (dot) dot.remove();
         }
         
-        // Update badge count
         loadNotifications();
         
     } catch (error) {
@@ -1302,13 +1230,11 @@ async function openNotification(notificationId) {
     }
 }
 
-// WhatsApp integration
 function openWhatsApp() {
     const message = "Hello KUKU YETU, I'd like to know more about your products.";
     window.open(`https://wa.me/+254112402377?text=${encodeURIComponent(message)}`, '_blank');
 }
 
-// Utility functions
 function formatDate(dateString) {
     if (!dateString) return '';
     const date = new Date(dateString);
@@ -1329,7 +1255,7 @@ function formatDate(dateString) {
 function attachProductEventListeners() {
     // Handled by onclick attributes
 }
-// Location function - WITH ACTUAL PLACE NAMES (using BigDataCloud - no CORS issues)
+
 function getUserLocation() {
     if (navigator.geolocation) {
         showLoading();
@@ -1338,7 +1264,6 @@ function getUserLocation() {
                 try {
                     const { latitude, longitude } = position.coords;
                     
-                    // Use BigDataCloud API (free, no CORS, no API key needed for limited use)
                     const response = await fetch(
                         `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
                     );
@@ -1347,10 +1272,8 @@ function getUserLocation() {
                         const data = await response.json();
                         console.log('Location data:', data);
                         
-                        // Build a nice formatted address
                         let locationText = '';
                         
-                        // Prioritize city/town/village
                         if (data.city) {
                             locationText = data.city;
                         } else if (data.locality) {
@@ -1361,31 +1284,27 @@ function getUserLocation() {
                             locationText = data.village;
                         }
                         
-                        // Add principal subdivision (state/county)
                         if (data.principalSubdivision) {
                             locationText += locationText ? `, ${data.principalSubdivision}` : data.principalSubdivision;
                         }
                         
-                        // Add country
                         if (data.countryName) {
                             locationText += locationText ? `, ${data.countryName}` : data.countryName;
                         }
                         
-                        // If we still don't have a good name, use the formatted address
                         if (!locationText && data.localityInfo) {
                             const parts = [];
                             if (data.localityInfo.informative) {
                                 const informative = data.localityInfo.informative;
                                 if (informative.length >= 3) {
-                                    parts.push(informative[informative.length-3].name); // City
-                                    parts.push(informative[informative.length-2].name); // Region
-                                    parts.push(informative[informative.length-1].name); // Country
+                                    parts.push(informative[informative.length-3].name);
+                                    parts.push(informative[informative.length-2].name);
+                                    parts.push(informative[informative.length-1].name);
                                 }
                             }
                             locationText = parts.join(', ');
                         }
                         
-                        // Final fallback to coordinates
                         if (!locationText) {
                             locationText = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
                         }
@@ -1396,12 +1315,10 @@ function getUserLocation() {
                             showToast(`📍 ${locationText.split(',')[0]}`, 'success');
                         }
                     } else {
-                        // Fallback to coordinates
                         throw new Error('API response not OK');
                     }
                 } catch (error) {
                     console.error('Geocoding error:', error);
-                    // Fallback to coordinates
                     const locationInput = document.getElementById('locationInput');
                     if (locationInput) {
                         locationInput.value = `${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`;
@@ -1441,7 +1358,6 @@ function getUserLocation() {
     }
 }
 
-// Order functions
 async function confirmOrder() {
     if (!currentUser) {
         sessionStorage.setItem('redirectAfterLogin', 'confirmOrder');
@@ -1471,14 +1387,12 @@ async function confirmOrder() {
 
     showLoading();
     try {
-        // Calculate total properly
         const total = cart.reduce((sum, item) => {
             const price = parseFloat(item.price) || 0;
             const qty = parseInt(item.quantity) || 1;
             return sum + (price * qty);
         }, 0);
 
-        // Prepare order data
         const orderData = {
             customer_name: currentUser.full_name,
             phone: currentUser.phone,
@@ -1516,7 +1430,6 @@ async function confirmOrder() {
         if (response.ok && result.success) {
             currentOrder = result.order;
             
-            // Clear cart
             cart = [];
             saveCart();
             updateCartBadge();
@@ -1524,10 +1437,8 @@ async function confirmOrder() {
             if (cartModal) cartModal.classList.remove('active');
             showToast('✅ Order confirmed successfully!', 'success');
             
-            // Show success message with order ID
             showToast(`Order #${currentOrder.order_id} has been placed!`, 'success');
             
-            // Navigate to order history after 2 seconds
             setTimeout(() => {
                 navigateTo('profile');
                 viewOrderHistory();
@@ -1544,6 +1455,7 @@ async function confirmOrder() {
         hideLoading();
     }
 }
+
 function orderViaWhatsApp() {
     if (!currentUser) {
         sessionStorage.setItem('redirectAfterLogin', 'orderViaWhatsApp');
@@ -1567,7 +1479,6 @@ function orderViaWhatsApp() {
         return;
     }
 
-    // Format date
     const now = new Date();
     const dateStr = now.toLocaleDateString('en-KE', { 
         day: 'numeric', 
@@ -1579,14 +1490,12 @@ function orderViaWhatsApp() {
         minute: '2-digit' 
     });
 
-    // Build order items list
     const itemsList = cart.map(item => 
         `• ${item.title} x${item.quantity || 1} = Ksh ${((parseFloat(item.price) || 0) * (item.quantity || 1)).toFixed(2)}`
     ).join('%0A');
 
     const total = cart.reduce((sum, item) => sum + ((parseFloat(item.price) || 0) * (item.quantity || 1)), 0);
 
-    // Create a clean, professional message
     const message = 
         `*KUKU YETU - New Order*%0A%0A` +
         `━━━━━━━━━━━━━━━━━━━━━%0A` +
@@ -1609,10 +1518,8 @@ function orderViaWhatsApp() {
         `_Thank you for choosing KUKU YETU!_%0A` +
         `_We'll process your order shortly._`;
 
-    // Open WhatsApp with the formatted message
     window.open(`https://wa.me/+254112402377?text=${message}`, '_blank');
 }
-
 
 function generateReceipt() {
     if (!currentUser) {
@@ -1626,11 +1533,9 @@ function generateReceipt() {
         return;
     }
 
-    // If we have a current order, use it, otherwise use cart
     if (currentOrder) {
         generateOrderReceipt(currentOrder);
     } else {
-        // Ask if they want to generate receipt for current cart
         if (confirm('Generate receipt for items in cart? Note: This is not a confirmed order.')) {
             generateCartReceipt();
         }
@@ -1711,7 +1616,7 @@ function generateReceiptHTML(order) {
     }
     
     const subtotal = products.reduce((sum, item) => sum + ((parseFloat(item.price) || 0) * (item.quantity || 1)), 0);
-    const tax = subtotal * 0.16; // 16% VAT
+    const tax = subtotal * 0.16;
     const total = subtotal + tax;
 
     const isPaid = order.status === 'delivered' || order.status === 'completed';
@@ -1812,7 +1717,6 @@ function generateCartReceipt() {
     generateOrderReceipt(mockOrder);
 }
 
-// Helper function to convert numbers to words (simplified)
 function numberToWords(num) {
     const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
     const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
@@ -1911,7 +1815,6 @@ function viewOrderDetails(orderId) {
     showToast('View order details: ' + orderId, 'info');
 }
 
-// API functions
 async function getProducts() {
     try {
         const response = await fetch(`${API_BASE_URL}/products`);
@@ -1922,7 +1825,6 @@ async function getProducts() {
     }
 }
 
-// Make functions globally available
 window.openProductModal = openProductModal;
 window.addToCart = addToCart;
 window.removeFromCart = removeFromCart;
