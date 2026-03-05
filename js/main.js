@@ -578,7 +578,7 @@ function renderProductModal(product) {
             <div class="product-images">
                 <div class="image-slider">
                     <div class="slider-container" id="imageSlider">
-                        ${product.images.map(img => `<img src="https://kuku-yetu-backend.onrender.com/uploads/${img}" alt="${product.title}" onerror="this.src='/assets/images/placeholder.jpg'">`).join('')}
+                        ${product.images.map(img => `<img src="https://kuku-yetu-backend.onrender.com${img}" ...`)}
                     </div>
                     ${product.images.length > 1 ? `
                         <button class="slider-btn prev" onclick="slideImage(-1)"><i class="fas fa-chevron-left"></i></button>
