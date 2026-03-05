@@ -1,4 +1,3 @@
-
 // Admin specific JavaScript
 
 let currentOrders = [];
@@ -9,7 +8,7 @@ let imagesToRemove = [];
 // API Base URL
 const API_BASE_URL = window.location.hostname === 'localhost' 
     ? 'http://localhost:5000/api' 
-: 'https://kuku-yetu-backend.onrender.com/api';
+    : 'https://kuku-yetu-backend.onrender.com/api';
 
 // Check if admin is logged in
 document.addEventListener('DOMContentLoaded', () => {
@@ -93,7 +92,7 @@ async function handleAdminLogin(e) {
         const data = await response.json();
         console.log('Login response:', data);
 
-        if (response.ok) {
+        if (response.ok && data.success) {
             localStorage.setItem('adminToken', data.token);
             localStorage.setItem('admin', JSON.stringify(data.user));
             showAdminDashboard();
@@ -129,112 +128,6 @@ function adminLogout() {
     localStorage.removeItem('admin');
     showAdminLogin();
     showToast('Logged out successfully', 'success');
-}
-
-// ============= PRODUCT FUNCTIONS =============
-
-async function loadProducts() {
-    showLoading();
-    try {
-        const products = await getProducts();
-        currentProducts = products;
-        renderProductsTable(products);
-    } catch (error) {
-        console.error('Failed to load products:', error);
-        showToast('Failed to load products', 'error');
-    } finally {
-        hideLoading();
-    }
-}
-
-function renderProductsTable(products) {
-    const tbody = document.getElementById('productsBody');
-    if (!tbody) return;
-    
-    if (products.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">No products found</td></tr>';
-        return;
-    }
-
-    tbody.innerHTML = products.map(product => `
-        <tr>
-            <td>${product.product_id || product.id || 'N/A'}</td>
-            <td>
-                <img src="${product.images && product.images[0] ? product.images[0] : '/assets/images/placeholder.jpg'}" 
-                     alt="${product.title || 'Product'}" 
-                     style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;">
-            </td>
-            <td>${product.title || 'N/A'}</td>
-            <td>${product.category || 'N/A'}</td>
-            <td>Ksh ${product.price || 0}</td>
-            <td>
-                <span class="stock-badge ${product.stock_status || 'available'}">
-                    ${product.stock_status === 'low' ? 'Few Units' : 
-                      product.stock_status === 'available' ? 'In Stock' : 'Out of Stock'}
-                </span>
-            </td>
-            <td>${product.rating || 0} ★</td>
-            <td>
-                <button class="btn-view" onclick="openEditProductModal(${product.id})" style="margin-right: 5px; background: #2196f3;">
-                    <i class="fas fa-edit"></i> Edit
-                </button>
-                <button class="btn-view" onclick="deleteProduct(${product.id})" style="background: #f44336;">
-                    <i class="fas fa-trash"></i> Delete
-                </button>
-            </td>
-        </tr>
-    `).join('');
-}
-
-// ============= ORDER FUNCTIONS =============
-
-async function loadAllOrders() {
-    showLoading();
-    try {
-        const orders = await getAllOrders();
-        renderAllOrdersTable(orders);
-    } catch (error) {
-        console.error('Failed to load orders:', error);
-        showToast('Failed to load orders', 'error');
-    } finally {
-        hideLoading();
-    }
-}
-
-function renderAllOrdersTable(orders) {
-    const tbody = document.getElementById('allOrdersBody');
-    if (!tbody) return;
-    
-    if (orders.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No orders found</td></tr>';
-        return;
-    }
-
-    tbody.innerHTML = orders.map(order => {
-        let products = [];
-        try {
-            products = typeof order.products === 'string' ? JSON.parse(order.products) : (order.products || []);
-        } catch (e) {
-            products = [];
-        }
-        const productNames = products.map(p => p.title).join(', ');
-
-        return `
-            <tr>
-                <td>${order.order_id || 'N/A'}</td>
-                <td>${order.customer_name || 'N/A'}</td>
-                <td>${order.phone || 'N/A'}</td>
-                <td>${order.location || 'N/A'}</td>
-                <td>${productNames.substring(0, 30)}${productNames.length > 30 ? '...' : ''}</td>
-                <td><span class="status-badge ${order.status || 'pending'}">${order.status || 'pending'}</span></td>
-                <td>
-                    <button class="btn-view" onclick="viewOrderDetails(${order.id})">
-                        <i class="fas fa-eye"></i> View
-                    </button>
-                </td>
-            </tr>
-        `;
-    }).join('');
 }
 
 // ============= TAB SWITCHING =============
@@ -323,6 +216,119 @@ function loadRecentOrders(orders) {
             </td>
         </tr>
     `).join('');
+}
+
+// ============= PRODUCT FUNCTIONS =============
+
+async function loadProducts() {
+    showLoading();
+    try {
+        const products = await getProducts();
+        currentProducts = products;
+        renderProductsTable(products);
+    } catch (error) {
+        console.error('Failed to load products:', error);
+        showToast('Failed to load products', 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+function renderProductsTable(products) {
+    const tbody = document.getElementById('productsBody');
+    if (!tbody) return;
+    
+    if (products.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">No products found</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = products.map(product => {
+        // Fix image URL to point to backend
+        const imageUrl = product.images && product.images[0] 
+            ? 'https://kuku-yetu-backend.onrender.com/uploads/' + product.images[0]
+            : '/assets/images/placeholder.jpg';
+        
+        return `
+            <tr>
+                <td>${product.product_id || product.id || 'N/A'}</td>
+                <td>
+                    <img src="${imageUrl}" 
+                         alt="${product.title || 'Product'}" 
+                         style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;">
+                </td>
+                <td>${product.title || 'N/A'}</td>
+                <td>${product.category || 'N/A'}</td>
+                <td>Ksh ${product.price || 0}</td>
+                <td>
+                    <span class="stock-badge ${product.stock_status || 'available'}">
+                        ${product.stock_status === 'low' ? 'Few Units' : 
+                          product.stock_status === 'available' ? 'In Stock' : 'Out of Stock'}
+                    </span>
+                </td>
+                <td>${product.rating || 0} ★</td>
+                <td>
+                    <button class="btn-view" onclick="openEditProductModal(${product.id})" style="margin-right: 5px; background: #2196f3;">
+                        <i class="fas fa-edit"></i> Edit
+                    </button>
+                    <button class="btn-view" onclick="deleteProduct(${product.id})" style="background: #f44336;">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+// ============= ORDER FUNCTIONS =============
+
+async function loadAllOrders() {
+    showLoading();
+    try {
+        const orders = await getAllOrders();
+        renderAllOrdersTable(orders);
+    } catch (error) {
+        console.error('Failed to load orders:', error);
+        showToast('Failed to load orders', 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+function renderAllOrdersTable(orders) {
+    const tbody = document.getElementById('allOrdersBody');
+    if (!tbody) return;
+    
+    if (orders.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No orders found</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = orders.map(order => {
+        let products = [];
+        try {
+            products = typeof order.products === 'string' ? JSON.parse(order.products) : (order.products || []);
+        } catch (e) {
+            products = [];
+        }
+        const productNames = products.map(p => p.title).join(', ');
+
+        return `
+            <tr>
+                <td>${order.order_id || 'N/A'}</td>
+                <td>${order.customer_name || 'N/A'}</td>
+                <td>${order.phone || 'N/A'}</td>
+                <td>${order.location || 'N/A'}</td>
+                <td>${productNames.substring(0, 30)}${productNames.length > 30 ? '...' : ''}</td>
+                <td><span class="status-badge ${order.status || 'pending'}">${order.status || 'pending'}</span></td>
+                <td>
+                    <button class="btn-view" onclick="viewOrderDetails(${order.id})">
+                        <i class="fas fa-eye"></i> View
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
 }
 
 // ============= ADD PRODUCT FUNCTIONS =============
@@ -437,7 +443,7 @@ async function handleAddProduct(e) {
 
         const result = await response.json();
         
-        if (response.ok) {
+        if (response.ok && result.success) {
             showToast('Product added successfully!', 'success');
             document.getElementById('addProductModal')?.classList.remove('active');
             document.getElementById('addProductForm')?.reset();
@@ -491,12 +497,15 @@ async function openEditProductModal(productId) {
         const previewDiv = document.getElementById('editImagePreview');
         if (previewDiv) {
             if (product.images && product.images.length > 0) {
-                previewDiv.innerHTML = product.images.map(img => `
-                    <div style="position: relative; display: inline-block; margin: 5px;" data-image="${img}">
-                        <img src="${img}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd;">
-                        <button type="button" onclick="removeExistingImage('${img}')" style="position: absolute; top: -5px; right: -5px; background: #f44336; color: white; border: none; border-radius: 50%; width: 22px; height: 22px; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center;">×</button>
-                    </div>
-                `).join('');
+                previewDiv.innerHTML = product.images.map(img => {
+                    const imageUrl = 'https://kuku-yetu-backend.onrender.com/uploads/' + img;
+                    return `
+                        <div style="position: relative; display: inline-block; margin: 5px;" data-image="${img}">
+                            <img src="${imageUrl}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd;">
+                            <button type="button" onclick="removeExistingImage('${img}')" style="position: absolute; top: -5px; right: -5px; background: #f44336; color: white; border: none; border-radius: 50%; width: 22px; height: 22px; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center;">×</button>
+                        </div>
+                    `;
+                }).join('');
             } else {
                 previewDiv.innerHTML = '<p style="color: #999; text-align: center; padding: 20px;">No images available</p>';
             }
@@ -611,7 +620,7 @@ async function handleEditProduct(e) {
 
         const result = await response.json();
         
-        if (response.ok) {
+        if (response.ok && result.success) {
             showToast('Product updated successfully!', 'success');
             document.getElementById('editProductModal').classList.remove('active');
             document.getElementById('editProductForm').reset();
@@ -649,7 +658,7 @@ async function deleteProduct(productId) {
 
         const result = await response.json();
         
-        if (response.ok) {
+        if (response.ok && result.success) {
             showToast('Product deleted successfully!', 'success');
             loadProducts();
         } else {
@@ -794,7 +803,7 @@ async function updateOrderStatus(orderId, status) {
 
         const result = await response.json();
         
-        if (response.ok) {
+        if (response.ok && result.success) {
             document.getElementById('orderDetailsModal')?.classList.remove('active');
             loadDashboardData();
             showToast(`Order marked as ${status}`, 'success');
@@ -933,11 +942,26 @@ async function getProducts() {
 async function getAllOrders() {
     try {
         const token = localStorage.getItem('adminToken');
+        if (!token) {
+            console.warn('No admin token found');
+            return [];
+        }
+        
         const response = await fetch(`${API_BASE_URL}/orders`, {
             headers: {
                 'x-auth-token': token
             }
         });
+        
+        if (!response.ok) {
+            if (response.status === 401) {
+                showToast('Session expired. Please login again.', 'error');
+                adminLogout();
+                return [];
+            }
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const data = await response.json();
         return data.orders || [];
     } catch (error) {
@@ -949,11 +973,20 @@ async function getAllOrders() {
 async function getOrder(orderId) {
     try {
         const token = localStorage.getItem('adminToken');
+        if (!token) {
+            throw new Error('No admin token found');
+        }
+        
         const response = await fetch(`${API_BASE_URL}/orders/${orderId}`, {
             headers: {
                 'x-auth-token': token
             }
         });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const data = await response.json();
         return data.order || {};
     } catch (error) {
