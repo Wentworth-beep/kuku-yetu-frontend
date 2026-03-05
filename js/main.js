@@ -233,10 +233,9 @@ function createProductCard(product) {
     }
     
     const placeholder = 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 300 200\'%3E%3Crect width=\'300\' height=\'200\' fill=\'%23f0f0f0\'/%3E%3Ctext x=\'50%25\' y=\'50%25\' font-family=\'Arial\' font-size=\'16\' fill=\'%23999\' text-anchor=\'middle\' dy=\'.3em\'%3ELoading...%3C/text%3E%3C/svg%3E';
-    
     const imageUrl = product.images && product.images[0] 
-        ? 'https://kuku-yetu-backend.onrender.com/uploads/' + product.images[0]
-        : '/assets/images/placeholder.jpg';
+    ? 'https://kuku-yetu-backend.onrender.com' + product.images[0]
+    : '/assets/images/placeholder.jpg';
     
     return `
         <div class="product-card" data-product-id="${product.id}">
