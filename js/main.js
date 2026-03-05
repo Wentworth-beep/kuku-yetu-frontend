@@ -228,8 +228,6 @@ function lazyLoadImages() {
         imageObserver.observe(img);
     });
 }
-
-// Create product card with lazy loading
 function createProductCard(product) {
     const isFavorite = favorites.includes(product.id);
     let stockClass = 'available';
@@ -242,6 +240,30 @@ function createProductCard(product) {
         stockClass = 'out';
         stockText = 'Out of stock';
     }
+    
+    // DEFINE placeholder HERE
+    const placeholder = 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 300 200\'%3E%3Crect width=\'300\' height=\'200\' fill=\'%23f0f0f0\'/%3E%3Ctext x=\'50%25\' y=\'50%25\' font-family=\'Arial\' font-size=\'16\' fill=\'%23999\' text-anchor=\'middle\' dy=\'.3em\'%3ELoading...%3C/text%3E%3C/svg%3E';
+    
+    // FIXED image URL - points to backend
+    const imageUrl = product.images && product.images[0] 
+        ? 'https://kuku-yetu-backend.onrender.com/uploads/' + product.images[0]
+        : '/assets/images/placeholder.jpg';
+    
+    return `
+        <div class="product-card" data-product-id="${product.id}">
+            <div class="product-image">
+                <img data-src="${imageUrl}" 
+                     src="${placeholder}"
+                     alt="${product.title || 'Product'}" 
+                     class="lazy-image"
+                     onerror="this.src='/assets/images/placeholder.jpg'">
+                <span class="product-category">${product.category || 'Uncategorized'}</span>
+                <span class="stock-status ${stockClass}">${stockText}</span>
+            </div>
+            ...
+        </div>
+    `;
+}
     
     // Use placeholder while loading
   const imageUrl = product.images && product.images[0] 
