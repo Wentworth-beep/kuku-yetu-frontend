@@ -218,7 +218,7 @@ function lazyLoadImages() {
     });
 }
 
-// ============= PRODUCT CARD FUNCTION - FIXED =============
+// ============= PRODUCT CARD FUNCTION =============
 function createProductCard(product) {
     const isFavorite = favorites.includes(product.id);
     let stockClass = 'available';
@@ -233,9 +233,11 @@ function createProductCard(product) {
     }
     
     const placeholder = 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 300 200\'%3E%3Crect width=\'300\' height=\'200\' fill=\'%23f0f0f0\'/%3E%3Ctext x=\'50%25\' y=\'50%25\' font-family=\'Arial\' font-size=\'16\' fill=\'%23999\' text-anchor=\'middle\' dy=\'.3em\'%3ELoading...%3C/text%3E%3C/svg%3E';
+    
+    // Fix image URL - product.images already contains /uploads/
     const imageUrl = product.images && product.images[0] 
-    ? 'https://kuku-yetu-backend.onrender.com' + product.images[0]
-    : '/assets/images/placeholder.jpg';
+        ? 'https://kuku-yetu-backend.onrender.com' + product.images[0]
+        : '/assets/images/placeholder.jpg';
     
     return `
         <div class="product-card" data-product-id="${product.id}">
@@ -578,7 +580,7 @@ function renderProductModal(product) {
             <div class="product-images">
                 <div class="image-slider">
                     <div class="slider-container" id="imageSlider">
-                        ${product.images.map(img => `<img src="https://kuku-yetu-backend.onrender.com${img}" ...`)}
+                        ${product.images.map(img => `<img src="https://kuku-yetu-backend.onrender.com${img}" alt="${product.title}" onerror="this.src='/assets/images/placeholder.jpg'">`).join('')}
                     </div>
                     ${product.images.length > 1 ? `
                         <button class="slider-btn prev" onclick="slideImage(-1)"><i class="fas fa-chevron-left"></i></button>
@@ -741,25 +743,31 @@ function renderCart() {
 
     cartBody.innerHTML = `
         <div class="cart-items" style="max-height: 400px; overflow-y: auto;">
-            ${cart.map(item => `
-                <div class="cart-item" style="display: flex; gap: 15px; padding: 15px; border-bottom: 1px solid #eee;">
-                    <img src="${item.image ? 'https://kuku-yetu-backend.onrender.com/uploads/' + item.image : '/assets/images/placeholder.jpg'}" 
-                         alt="${item.title}" 
-                         class="cart-item-image" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px;">
-                    <div class="cart-item-details" style="flex: 1;">
-                        <h4 style="margin: 0 0 5px 0;">${item.title}</h4>
-                        <div style="font-weight: bold; color: var(--primary-color); margin-bottom: 10px;">Ksh ${parseFloat(item.price).toFixed(2)}</div>
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <button class="quantity-btn" onclick="updateQuantity(${item.id}, -1)" style="width: 30px; height: 30px;">-</button>
-                            <span style="min-width: 30px; text-align: center;">${item.quantity || 1}</span>
-                            <button class="quantity-btn" onclick="updateQuantity(${item.id}, 1)" style="width: 30px; height: 30px;">+</button>
-                            <button onclick="removeFromCart(${item.id})" style="background: none; border: none; color: #f44336; margin-left: 10px;">
-                                <i class="fas fa-trash"></i>
-                            </button>
+            ${cart.map(item => {
+                // Fix cart image URL
+                const cartImageUrl = item.image 
+                    ? 'https://kuku-yetu-backend.onrender.com' + item.image 
+                    : '/assets/images/placeholder.jpg';
+                return `
+                    <div class="cart-item" style="display: flex; gap: 15px; padding: 15px; border-bottom: 1px solid #eee;">
+                        <img src="${cartImageUrl}" 
+                             alt="${item.title}" 
+                             class="cart-item-image" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px;">
+                        <div class="cart-item-details" style="flex: 1;">
+                            <h4 style="margin: 0 0 5px 0;">${item.title}</h4>
+                            <div style="font-weight: bold; color: var(--primary-color); margin-bottom: 10px;">Ksh ${parseFloat(item.price).toFixed(2)}</div>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <button class="quantity-btn" onclick="updateQuantity(${item.id}, -1)" style="width: 30px; height: 30px;">-</button>
+                                <span style="min-width: 30px; text-align: center;">${item.quantity || 1}</span>
+                                <button class="quantity-btn" onclick="updateQuantity(${item.id}, 1)" style="width: 30px; height: 30px;">+</button>
+                                <button onclick="removeFromCart(${item.id})" style="background: none; border: none; color: #f44336; margin-left: 10px;">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            `).join('')}
+                `;
+            }).join('')}
         </div>
         <div style="padding: 20px; background: #f8f9fa; border-radius: 8px; margin: 15px 0;">
             <div style="display: flex; justify-content: space-between; font-size: 1.2rem; font-weight: bold;">
